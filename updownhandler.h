@@ -14,7 +14,7 @@ public:
     Common* sharedData;
     explicit UpdownHandler(Common* sharedDataPtr, int port = 8061);
     static void onConnection(const TcpConnectionPtr& conn);
-    static void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp receiveTime);
+    static void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp receiveTime, Common *sharedData);
 private:
     int port = 8061;
     void run();

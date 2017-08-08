@@ -4,6 +4,9 @@
 #include <muduo/net/http/HttpRequest.h>
 #include <muduo/net/http/HttpResponse.h>
 #include <muduo/net/EventLoop.h>
+#include <muduo/base/Timestamp.h>
+#include <boost/bind.hpp>
+#include <json/json.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -14,7 +17,7 @@ QueryHandler::QueryHandler(Common* sharedDataPtr, int port)
     this->port = port;
 }
 
-void QueryHandler::onRequest(const HttpRequest& req, HttpResponse* resp)
+void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpResponse* resp)
 {
     LOG_INFO << "Headers " << req.methodString() << " " << req.path();
 
@@ -23,19 +26,44 @@ void QueryHandler::onRequest(const HttpRequest& req, HttpResponse* resp)
         resp->setStatusCode(HttpResponse::k200Ok);
         resp->setStatusMessage("OK");
         resp->setContentType("text/html");
-        resp->addHeader("Server", "Muduo");
-        muduo::string now = Timestamp::now().toFormattedString();
-        resp->setBody("<html><head><title>This is title</title></head>"
-                      "<body><h1>Hello</h1>Header Info: " + req.getHeader("NotExist") +
+        resp->addHeader("Server", "LajiPan IS");
+        muduo::string now = Timestamp::now().toString();
+        resp->setBody("<html><head><title>Navigation Page</title></head>"
+                      "<body><h1>Navigation Page</h1>"
+                      //"Header Info: " + req.getHeader("NotExist") + "<br/>"
+                      "<a href='./info'>InformationServer Status</a><br/>"
                       "</body></html>");
     }
-    else if (req.path().at(1) == 'c')
+    else if (req.path().at(0) == '/' && req.path().at(1) == 'i')
     {
         resp->setStatusCode(HttpResponse::k200Ok);
         resp->setStatusMessage("OK");
-        resp->setContentType("text/plain");
-        resp->addHeader("Server", "Muduo");
-        resp->setBody("<h1>C!</h1>\n");
+        resp->setContentType("application/json");
+        resp->addHeader("Server", "LajiPan IS");
+
+        Json::Value root;
+
+        int idx = 0;
+        map<int, SrvStat>::iterator iter;
+        for(iter=sharedData->srvStatus.begin(); iter!=sharedData->srvStatus.end(); iter++) {
+            SrvStat gotaSrvStat = iter->second;
+            root["fs_avaliable"][idx]["ID"] = gotaSrvStat.serverID;
+            root["fs_avaliable"][idx]["addr"] = gotaSrvStat.serverAddr.toIpPort();
+            root["fs_avaliable"][idx]["lastKeepAlive"] = gotaSrvStat.lastKeepAlive.toString();
+
+            idx++;
+        }
+
+        root["fs_enabled"] = Json::arrayValue;
+        vector<int>::iterator vecIter;
+        for(vecIter=sharedData->enabledSrvArr.begin(); vecIter!=sharedData->enabledSrvArr.end(); vecIter++) {
+            root["fs_enabled"].append(*vecIter);
+        }
+
+        Json::FastWriter writer;
+        std::string rawData = writer.write(root);
+
+        resp->setBody(rawData);
     }
     else
     {
@@ -50,7 +78,7 @@ void QueryHandler::run()
     InetAddress queryListenAddr(port);
     EventLoop queryLoop;
     HttpServer querySrv(&queryLoop, queryListenAddr, "QuerySrv");
-    querySrv.setHttpCallback(QueryHandler::onRequest);
+    querySrv.setHttpCallback(boost::bind(&QueryHandler::onRequest, sharedData, _1, _2));
     querySrv.setThreadNum(0);
     querySrv.start();
     queryLoop.loop();

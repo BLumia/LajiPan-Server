@@ -1,9 +1,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#define MUDUO_STD_STRING
 //#define BLBLBLBLB
 
 #include <map>
+#include <vector>
 #include <muduo/net/InetAddress.h>
 #include <muduo/base/Timestamp.h>
 
@@ -23,12 +25,23 @@ enum program_type {
     PG_FILE_SRV  // chunk server
 };
 
+const string PG_TYPE_NAME[] {
+    "PG_CLIENT",
+    "PG_INFO_SRV",
+    "PG_FILE_SRV"
+};
+
 class Common
 {
 public:
-    map<int, SrvStat> srvStatus;
     program_type prgType;
     int querySrvPort, updownSrvPort, subSrvPort;
+    // if prgType = PG_FILE_SRV
+    int32_t srvID;
+    // if prgType = PG_INFO_SRV
+    map<int, SrvStat> srvStatus;
+    vector<int> enabledSrvArr;
+
     Common();
 };
 

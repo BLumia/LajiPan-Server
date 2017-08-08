@@ -13,7 +13,7 @@ TEMPLATE = app
 INCLUDEPATH += /home/blumia/Workspace/tmp/muduo_test/muduo-1.0.9 \
     /home/blumia/Workspace/tmp/muduo_test/simpleini-4.17/
 LIBS += -L/home/blumia/Workspace/tmp/muduo_test/build/release/lib \
-    -lmuduo_net -lmuduo_base -lmuduo_http
+    -lmuduo_net -lmuduo_base -lmuduo_http -ljsoncpp
 
 SOURCES += main.cpp \
     testmain.cpp \

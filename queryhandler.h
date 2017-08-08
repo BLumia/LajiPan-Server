@@ -15,7 +15,7 @@ class QueryHandler : public QThread
 public:
     Common* sharedData;
     explicit QueryHandler(Common* sharedDataPtr, int port = 8080);
-    static void onRequest(const HttpRequest& req, HttpResponse* resp);
+    static void onRequest(Common *sharedData, const HttpRequest& req, HttpResponse* resp);
 private:
     int port = 8080;
     void run();

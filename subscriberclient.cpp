@@ -1,6 +1,8 @@
 #include "subscriberclient.h"
 #include <muduo/net/EventLoop.h>
 #include <boost/bind.hpp>
+#include <muduo/net/Socket.h>
+#include <muduo/net/Buffer.h>
 #include <QtConcurrent>
 #include <QDebug>
 
@@ -24,7 +26,6 @@ void SubscriberClient::onConnection(const TcpConnectionPtr &conn)
     {
         this->conn = conn;
         this->conn->setTcpNoDelay(true);
-        this->conn->send("fuck?");
         // KeepAlive use QtConcurrent?
         QtConcurrent::run(this, &SubscriberClient::sendKeepAlive);
         qDebug() << "conn succ";
@@ -42,14 +43,22 @@ void SubscriberClient::onMessage(const TcpConnectionPtr &conn,
 {
     Q_UNUSED(buf)
     Q_UNUSED(receiveTime)
-    conn->send(":what:\r\n");
+    Q_UNUSED(conn)
+    // conn->send(":what:\r\n");
 }
 
 void SubscriberClient::sendKeepAlive()
 {
     for(;;) {
         sleep(5);
-        conn->send("FIka");
+        Buffer sendBuffer;
+        sendBuffer.append("FIka");
+        sendBuffer.appendInt32(sharedData->srvID);
+        //conn->send("FIka");
+        //int32_t asd = sockets::hostToNetwork32(sharedData->srvID);
+        conn->send(&sendBuffer);
+        //conn->send(&asd, sizeof(asd));
+        //conn->send(&(sharedData->srvID), sizeof(sharedData->srvID));
     }
 
 }

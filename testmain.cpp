@@ -14,6 +14,7 @@ using namespace muduo::net;
 TestMain::TestMain(QObject *parent) : QObject(parent)
 {
     conf.SetUnicode();
+    conf.SetMultiKey(true);
     conf.LoadFile("ini.ini");
     sharedData.prgType = PG_INFO_SRV;
     const char* prgTypeVal = conf.GetValue("main", "program_type", "1");
@@ -24,6 +25,22 @@ TestMain::TestMain(QObject *parent) : QObject(parent)
     sharedData.updownSrvPort = atoi(updownSrvPortVal);
     const char* subSrvPortVal = conf.GetValue("main", "sub_srv_port", "8008");
     sharedData.subSrvPort = atoi(subSrvPortVal);
+
+    if (sharedData.prgType == PG_FILE_SRV) {
+        const char* fsIDVal = conf.GetValue("filesrv", "srv_id", "1");
+        sharedData.srvID = atoi(fsIDVal);
+    }
+
+    if (sharedData.prgType == PG_INFO_SRV) {
+        CSimpleIniA::TNamesDepend values;
+        conf.GetAllValues("infosrv", "fs_ids", values);
+        values.sort(CSimpleIniA::Entry::LoadOrder());
+
+        CSimpleIniA::TNamesDepend::const_iterator iter;
+        for (iter = values.begin(); iter != values.end(); ++iter) {
+            sharedData.enabledSrvArr.push_back(atoi(iter->pItem));
+        }
+    }
 
 #ifdef BLBLBLBLB
     qDebug() << sharedData.querySrvPort << sharedData.updownSrvPort << sharedData.subSrvPort;
@@ -48,13 +65,16 @@ TestMain::~TestMain()
 
 void TestMain::main()
 {
-    LOG_INFO << "pid = " << getpid();
+    LOG_INFO << "pid = " << getpid() << " Program Type: " << PG_TYPE_NAME[sharedData.prgType];
 
-    QueryHandler querySrv(&sharedData, sharedData.querySrvPort);
-    querySrv.start();
+    Logger::setLogLevel(Logger::DEBUG);
 
     UpdownHandler updownSrv(&sharedData, sharedData.updownSrvPort);
     updownSrv.start();
+
+    // file srv disable query handling?
+    QueryHandler querySrv(&sharedData, sharedData.querySrvPort);
+    querySrv.start();
 
     SubscriberClient subSrv(&sharedData, sharedData.subSrvPort);
     if (sharedData.prgType == PG_FILE_SRV) {
@@ -62,6 +82,6 @@ void TestMain::main()
     }
 
     // wait till end.
-    querySrv.wait();
+    updownSrv.wait();
 
 }
