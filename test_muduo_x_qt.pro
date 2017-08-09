@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     queryhandler.cpp \
     updownhandler.cpp \
     subscriberclient.cpp \
-    common.cpp
+    common.cpp \
+    fileelement.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -38,4 +39,5 @@ HEADERS += \
     queryhandler.h \
     updownhandler.h \
     subscriberclient.h \
-    common.h
+    common.h \
+    fileelement.h

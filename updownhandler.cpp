@@ -1,7 +1,10 @@
 #include "updownhandler.h"
+#include "fileelement.h"
 
 #include <string>
+#include <cstring>
 #include <boost/bind.hpp>
+#include <QDir>
 
 #include <muduo/net/EventLoop.h>
 #include <muduo/net/TcpServer.h>
@@ -14,6 +17,13 @@ UpdownHandler::UpdownHandler(Common *sharedDataPtr, int port)
 {
     this->sharedData = sharedDataPtr;
     this->port = port;
+
+    if (sharedDataPtr->prgType == PG_INFO_SRV) {
+        if (!QDir("IS_Index").exists()) QDir().mkdir("IS_Index");
+    }
+    if (sharedDataPtr->prgType == PG_FILE_SRV) {
+        if (!QDir("FS_Index").exists()) QDir().mkdir("FS_Index");
+    }
 }
 
 void UpdownHandler::onConnection(const TcpConnectionPtr &conn)
@@ -27,7 +37,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
 {
     //Q_UNUSED(receiveTime)
     //char* buffer;buffer = buf->findCRLF(), buffer
-    muduo::string buffer;
+    string buffer;
     if (buf->readableBytes() >= 4) {
         buffer.assign(buf->retrieveAsString(4));
         // first 4 bytes:
@@ -57,11 +67,37 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             }
         } else if (buffer.compare("CIhq") == 0) {
             // Client -> infosrv Upload Hash Query, should response.
-            // req: [*CIhq*][hash len][hash][file first 64 bytes][filesize(ssize_t?)]
-            // rsp: [ICdc][addrcnt][addr][chunkcnt][chinkid1..2..][addr2]... (token?)
+            // req: [*CIhq*][hash(32bytes)][file first 32 bytes][filesize(int64_t)]
+            // rsp: [ICdc][rsplen]["404" / "403" / "200"] (if 404 then:)
+            //      [addrcnt][addr][chunkcnt][chinkid1..2..][addr2]... (token?)
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
+            }
+            string hashBuffer, ff32bBuffer;
+            int64_t fileSize;
+
+            hashBuffer = buf->retrieveAsString(32);
+            ff32bBuffer = buf->retrieveAsString(32);
+            fileSize = buf->readInt64();
+
+            FileElement eleme;
+            if (eleme.loadState(hashBuffer)) {
+                if (eleme.isBinaryFf32bEqual(ff32bBuffer)) {
+                    Buffer sendBuffer;
+                    sendBuffer.append("ICdc", 4);
+                    sendBuffer.appendInt32(3);
+                    sendBuffer.append("200", 3);
+                    conn->send(&sendBuffer);
+                } else {
+                    Buffer sendBuffer;
+                    sendBuffer.append("ICdc", 4);
+                    sendBuffer.appendInt32(3);
+                    sendBuffer.append("403", 3);
+                    conn->send(&sendBuffer);
+                }
+            } else {
+                // ?
             }
 
         } else if (buffer.compare("CFuc") == 0) {
@@ -78,6 +114,11 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             }
             // Query and response for trunk download.
 
+        } else if (buffer.compare("PING") == 0) {
+            // just for test, rsp: "PONG"
+            conn->send("PONG");
+            conn->shutdown();
+
         } else {
             LOG_INFO << "Weird Query: " << buffer;
         }
@@ -85,7 +126,8 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
         // conn->send(":cry_on_big_news:\r\n");
         // conn->shutdown();
     }
-    buf->retrieveAll(); // clean up unreaded.
+    // dont do this in final version!!!!!!
+    buf->retrieveAll(); // clean up unreaded. this may cause problem if data not yet fully received.
 }
 
 void UpdownHandler::run()
