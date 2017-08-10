@@ -67,23 +67,25 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             }
         } else if (buffer.compare("CIhq") == 0) {
             // Client -> infosrv Upload Hash Query, should response.
-            // req: [*CIhq*][hash(32bytes)][file first 32 bytes][filesize(int64_t)]
+            // req: [*CIhq*][hash(32bytes)][file first 16 bytes(hex, so 32bytes)]
+            //      [filesize(int64_t)][256byte filename]
             // rsp: [ICdc][rsplen]["404" / "403" / "200"] (if 404 then:)
-            //      [addrcnt][addr][chunkcnt][chinkid1..2..][addr2]... (token?)
+            //      [chunkcnt][addrcnt][addr1..2..]
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
             }
-            string hashBuffer, ff32bBuffer;
+            string hashBuffer, ff16bBuffer, fileName;
             int64_t fileSize;
 
             hashBuffer = buf->retrieveAsString(32);
-            ff32bBuffer = buf->retrieveAsString(32);
+            ff16bBuffer = buf->retrieveAsString(32);
             fileSize = buf->readInt64();
+            fileName = buf->retrieveAsString(256);
 
             FileElement eleme;
             if (eleme.loadState(hashBuffer)) {
-                if (eleme.isBinaryFf32bEqual(ff32bBuffer)) {
+                if (eleme.ff16b.trimmed().compare(QString::fromStdString(ff16bBuffer).trimmed()) == 0) {
                     Buffer sendBuffer;
                     sendBuffer.append("ICdc", 4);
                     sendBuffer.appendInt32(3);
@@ -95,15 +97,43 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                     sendBuffer.appendInt32(3);
                     sendBuffer.append("403", 3);
                     conn->send(&sendBuffer);
+                    LOG_WARN << eleme.ff16b.toStdString() << " | " << ff16bBuffer;
                 }
             } else {
-                // ?
+                // eleme init
+                eleme.md5 = QString::fromStdString(hashBuffer);
+                eleme.ff16b = QString::fromStdString(ff16bBuffer);
+                // rsp
+                int32_t chunkCnt = fileSize / CHUNKSIZE_B;
+                int32_t addrCnt = sharedData->enabledSrvArr.size();
+                int32_t sendSize;
+                sendSize = 3 + 2 * sizeof(int32_t) + addrCnt * 2 * sizeof(uint32_t) + 256;
+                eleme.totalChunkCount = chunkCnt;
+                Buffer sendBuffer;
+                sendBuffer.append("ICdc", 4);
+                sendBuffer.appendInt32(sendSize);
+                sendBuffer.append("404", 3);
+                sendBuffer.appendInt32(chunkCnt);
+                sendBuffer.appendInt32(addrCnt);
+                for(int i = 0; i< addrCnt; i++) {
+                    int srvIdx = sharedData->enabledSrvArr[i];
+                    uint32_t addr = sharedData->srvStatus[srvIdx].serverAddr.ipNetEndian();
+                    int32_t port = sharedData->srvStatus[srvIdx].serverAddr.toPort();
+                    //sendBuffer.append((char*)&addr, sizeof(addr));
+                    sendBuffer.appendInt32(addr);
+                    sendBuffer.appendInt32(port);
+                }
+                conn->send(&sendBuffer);
             }
 
         } else if (buffer.compare("CFuc") == 0) {
             // Client -> filesrv Upload Chunk, should response.
-            // req: [*CFuc*][chunk id][chunk len][chunk] (token?)
+            // req: [*CFuc*][file hash][file part id(for client)][chunk len][chunk] (token?)
             // rsp: [FCui]["succ" / "fuck"]
+        } else if (buffer.compare("FIru") == 0) {
+            // filesrv -> infosrv Report Upload
+            // req: [*FIru*][file hash][chunk id] (token?)
+            // rsp: tan 90°
         } else if (buffer.compare("CFdc") == 0) {
             // Client -> filesrv Download Chunk, should response.
             // req: [*CFdc*][chunk id][token for safty?]

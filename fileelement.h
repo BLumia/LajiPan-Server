@@ -11,15 +11,16 @@ class FileElement
 {
 public:
     FileElement();
-    int32_t id;
+    ~FileElement();
+    int32_t id = -1;
     QString md5;
-    QString ff32b;
+    QString ff16b;
     vector<int> chunkArray;
-    vector<int> notReadyChunkArray;
+    int totalChunkCount;
 
     bool loadState(std::string md5);
     bool saveState();
-    bool isBinaryFf32bEqual(string binFf32bBuffer);
+    bool isBinaryFf16bEqual(string binFf16bBuffer);
 private:
     bool inited = false;
 };

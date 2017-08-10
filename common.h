@@ -9,6 +9,9 @@
 #include <muduo/net/InetAddress.h>
 #include <muduo/base/Timestamp.h>
 
+#define CHUNKSIZE_MB    64
+#define CHUNKSIZE_B     67108861
+
 using namespace std;
 using namespace muduo;
 using namespace muduo::net;
