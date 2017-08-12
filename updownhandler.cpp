@@ -103,6 +103,11 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 // eleme init
                 eleme.md5 = QString::fromStdString(hashBuffer);
                 eleme.ff16b = QString::fromStdString(ff16bBuffer);
+                QString cleanedFileName = QString::fromStdString(fileName);
+                cleanedFileName = cleanedFileName.simplified();
+                // save file to fileStorage indexing db
+                sharedData->fileStorage.pushPathHash(cleanedFileName.toStdString(), hashBuffer);
+                sharedData->fileStorage.saveISData();
                 // rsp
                 int32_t chunkCnt = fileSize / CHUNKSIZE_B;
                 int32_t addrCnt = sharedData->enabledSrvArr.size();

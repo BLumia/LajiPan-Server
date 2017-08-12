@@ -27,11 +27,13 @@ TestMain::TestMain(QObject *parent) : QObject(parent)
     sharedData.subSrvPort = atoi(subSrvPortVal);
 
     if (sharedData.prgType == PG_FILE_SRV) {
+        sharedData.fileStorage.loadFSData();
         const char* fsIDVal = conf.GetValue("filesrv", "srv_id", "1");
         sharedData.srvID = atoi(fsIDVal);
     }
 
     if (sharedData.prgType == PG_INFO_SRV) {
+        sharedData.fileStorage.loadISData();
         CSimpleIniA::TNamesDepend values;
         conf.GetAllValues("infosrv", "fs_ids", values);
         values.sort(CSimpleIniA::Entry::LoadOrder());
@@ -60,7 +62,8 @@ TestMain::TestMain(QObject *parent) : QObject(parent)
 
 TestMain::~TestMain()
 {
-
+    // prog will be terminaled by pressing Ctrl+C
+    // so this func will not be triggered
 }
 
 void TestMain::main()

@@ -32,6 +32,7 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
                       "<body><h1>Navigation Page</h1>"
                       //"Header Info: " + req.getHeader("NotExist") + "<br/>"
                       "<a href='./info'>InformationServer Status</a><br/>"
+                      "<a href='./file'>File List | Chunk List</a><br/>"
                       "</body></html>");
     }
     else if (req.path().at(0) == '/' && req.path().at(1) == 'i')
@@ -59,6 +60,32 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
         for(vecIter=sharedData->enabledSrvArr.begin(); vecIter!=sharedData->enabledSrvArr.end(); vecIter++) {
             root["fs_enabled"].append(*vecIter);
         }
+
+        Json::FastWriter writer;
+        std::string rawData = writer.write(root);
+
+        resp->setBody(rawData);
+    }
+    else if (req.path().at(0) == '/' && req.path().at(1) == 'f')
+    {
+        resp->setStatusCode(HttpResponse::k200Ok);
+        resp->setStatusMessage("OK");
+        resp->setContentType("application/json");
+        resp->addHeader("Server", "LajiPan IS");
+
+        Json::Value root;
+
+        if (sharedData->prgType == PG_INFO_SRV) {
+            root["filelist"] = Json::arrayValue;
+            for (auto& kv : sharedData->fileStorage.pathHashMap) {
+                root["filelist"].append(kv.first);
+            }
+        } else if (sharedData->prgType == PG_FILE_SRV) {
+            // TODO: display chunk state
+        } else {
+            root["mamacat"] = "mia!";
+        }
+
 
         Json::FastWriter writer;
         std::string rawData = writer.write(root);

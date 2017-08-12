@@ -4,6 +4,7 @@
 #define MUDUO_STD_STRING
 //#define BLBLBLBLB
 
+#include <filestorage.h>
 #include <map>
 #include <vector>
 #include <muduo/net/InetAddress.h>
@@ -22,12 +23,6 @@ typedef struct server_status {
     Timestamp lastKeepAlive;
 } SrvStat;
 
-enum program_type {
-    PG_CLIENT,   // equals to 0
-    PG_INFO_SRV, // master server
-    PG_FILE_SRV  // chunk server
-};
-
 const string PG_TYPE_NAME[] {
     "PG_CLIENT",
     "PG_INFO_SRV",
@@ -42,6 +37,7 @@ public:
     // if prgType = PG_FILE_SRV
     int32_t srvID;
     // if prgType = PG_INFO_SRV
+    FileStorage fileStorage;
     map<int, SrvStat> srvStatus;
     vector<int> enabledSrvArr;
 
