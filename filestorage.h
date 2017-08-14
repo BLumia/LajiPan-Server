@@ -19,18 +19,20 @@ public:
     map<string, string> pathHashMap; //for FS, idxHashMap
     program_type storageOf;
     // if FILE_SRV
-    int nextIndex;
+    int nextIndex = 0;
     map<int, int> idxPartMap;
 
     FileStorage();
     ~FileStorage();
     bool pushPathHash(string path_k, string hash_v);
+    int pushFileRecord(string origFileHash, int filePartID);
     bool loadISData();
     bool loadFSData();
     bool saveISData();
     bool saveFSData();
 private:
     mutex writeFileMutex;
+    mutex insertDataMutex;
 
 };
 

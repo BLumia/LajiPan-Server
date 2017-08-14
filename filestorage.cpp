@@ -25,6 +25,16 @@ bool FileStorage::pushPathHash(string path_k, string hash_v)
     return true;
 }
 
+int FileStorage::pushFileRecord(string origFileHash, int filePartID)
+{
+    lock_guard<mutex> guardian(insertDataMutex); // protect for index.
+
+    pathHashMap.insert(pair<string, string>(std::to_string(this->nextIndex) , origFileHash));
+    idxPartMap.insert(pair<int, int>(this->nextIndex, filePartID) );
+    this->nextIndex++;
+    return (this->nextIndex - 1);
+}
+
 bool FileStorage::loadISData()
 {
     LOG_INFO << "loading IS storage data...";
@@ -67,6 +77,7 @@ bool FileStorage::loadFSData()
             readID = checkFile.readLine().toInt();
             readHash = checkFile.readLine();
             readPart = checkFile.readLine().toInt();
+            if (readID >= nextIndex) nextIndex = readID + 1;
             pathHashMap.insert(pair<string, string>(to_string(readID) , readHash.toStdString()));
             idxPartMap[readID] = readPart;
         }

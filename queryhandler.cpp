@@ -7,6 +7,8 @@
 #include <muduo/base/Timestamp.h>
 #include <boost/bind.hpp>
 #include <json/json.h>
+#include <QFile>
+#include <QFileInfo>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -92,9 +94,44 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
 
         resp->setBody(rawData);
     }
+    else if (req.path().at(0) == '/' && req.path().at(1) == 'd')
+    {   // assume url: /download/{ChunkID}
+        if (sharedData->prgType == PG_INFO_SRV) {
+            resp->setStatusCode(HttpResponse::k400BadRequest);
+            resp->setStatusMessage("Should be 403...");
+            resp->setCloseConnection(true);
+            return;
+        }
+        resp->setStatusCode(HttpResponse::k200Ok);
+        resp->setStatusMessage("OK");
+        resp->setContentType("application/octet-stream");
+        resp->addHeader("Server", "LajiPan IS");
+
+        // TODO: content len?
+        // blob
+        int chunkID;
+        char urlCopy[128];
+        strcpy(urlCopy, req.path().c_str());
+        sscanf(urlCopy + 10, "%d", &chunkID);
+        QString fileFullPath = "FS_Index/" + QString::number(chunkID);
+        QFile willUpload(fileFullPath);
+        QFileInfo fileinfo(fileFullPath);
+        qint64 fileLen = fileinfo.size();
+
+        resp->addHeader("content-length", QString::number(fileLen).toStdString());
+
+        if (!willUpload.open(QIODevice::ReadOnly)) {
+            LOG_ERROR << "CAN NOT READ FILE";
+            return;
+        }
+        QByteArray blob(fileLen, 0);
+        blob = willUpload.readAll();
+
+        resp->setBody(blob.toStdString());
+    }
     else
     {
-        resp->setStatusCode(HttpResponse::k404NotFound);
+        resp->setStatusCode(HttpResponse::k400BadRequest);
         resp->setStatusMessage("Not Found");
         resp->setCloseConnection(true);
     }

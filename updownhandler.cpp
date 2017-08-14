@@ -39,7 +39,10 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
     //char* buffer;buffer = buf->findCRLF(), buffer
     string buffer;
     if (buf->readableBytes() >= 4) {
-        buffer.assign(buf->retrieveAsString(4));
+        const char* headerPointer = buf->peek();
+        char f4b[5]; f4b[4] = '\0';
+        memcpy(f4b, headerPointer, 4);
+        buffer = f4b;
         // first 4 bytes:
         //      Upper case means sender type and receiver type
         //      Lower case means action
@@ -47,6 +50,9 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             // filesrv -> infosrv keep-alive
             // read / update filesrv uptime info.
             // req: [*FIka*][FileSrvID]
+            if (buf->readableBytes() < (4 + 4)) return; // wait for next read.
+            else buf->retrieve(4); // retrieve f4b header marker.
+
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
@@ -71,6 +77,9 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             //      [filesize(int64_t)][256byte filename]
             // rsp: [ICdc][rsplen]["404" / "403" / "200"] (if 404 then:)
             //      [chunkcnt][addrcnt][addr1..2..]
+            if (buf->readableBytes() < (4 + 32 + 32 + 8 + 256)) return; // wait for next read.
+            else buf->retrieve(4); // retrieve f4b header marker.
+
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
@@ -133,12 +142,64 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
 
         } else if (buffer.compare("CFuc") == 0) {
             // Client -> filesrv Upload Chunk, should response.
-            // req: [*CFuc*][file hash][file part id(for client)][chunk len][chunk] (token?)
+            // req: [*CFuc*][chunk len(int64)][file hash][file part id(for client)][chunk] (token?)
             // rsp: [FCui]["succ" / "fuck"]
+            if (buf->readableBytes() < 12) return; // should also have chunk len.
+            buf->retrieve(4);
+
+            int64_t chunkSize = buf->peekInt64();
+            if (buf->readableBytes() < (0 + 8 + 32 + 4 + chunkSize)) {
+                buf->prepend("CFuc", 4);
+                return;
+            } else {
+                buf->retrieve(8); // chunkSize
+            }
+
+            if (sharedData->prgType != PG_FILE_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+                return;
+            }
+
+            string hashBuffer = buf->retrieveAsString(32);
+            int filePartId = buf->readInt32();
+            string fileStreamBuffer = buf->retrieveAsString(chunkSize);
+
+            QByteArray fileBinary(fileStreamBuffer.c_str(), chunkSize);
+            int fileIdx = sharedData->fileStorage.pushFileRecord(hashBuffer, filePartId);
+            sharedData->fileStorage.saveFSData();
+            QFile file("FS_Index/" + QString::number(fileIdx));
+            file.open(QIODevice::WriteOnly);
+            file.write(fileBinary);
+            file.close();
+
+            Buffer sendBuffer;
+            sendBuffer.append("FCuisucc", 8);
+            conn->send(&sendBuffer);
+
         } else if (buffer.compare("FIru") == 0) {
             // filesrv -> infosrv Report Upload
             // req: [*FIru*][file hash][chunk id] (token?)
             // rsp: tan 90°
+            if (sharedData->prgType != PG_INFO_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+            }
+
+            if (buf->readableBytes() < (4 + 32 + 4)) return; // wait for next read.
+            else buf->retrieve(4); // retrieve f4b header marker.
+
+            string hashBuffer = buf->retrieveAsString(32);
+            int32_t chunkPartID = buf->readInt32();
+
+            FileElement eleme;
+            if (eleme.loadState(hashBuffer)) {
+                eleme.chunkArray.push_back(chunkPartID);
+                eleme.saveState();
+            } else {
+                LOG_WARN << "Trying to save or update not exist file state";
+            }
+
         } else if (buffer.compare("CFdc") == 0) {
             // Client -> filesrv Download Chunk, should response.
             // req: [*CFdc*][chunk id][token for safty?]
@@ -151,9 +212,9 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
 
         } else if (buffer.compare("PING") == 0) {
             // just for test, rsp: "PONG"
+            buf->retrieve(4);
             conn->send("PONG");
             conn->shutdown();
-
         } else {
             LOG_INFO << "Weird Query: " << buffer;
         }
