@@ -1,5 +1,6 @@
 #include "updownhandler.h"
 #include "fileelement.h"
+#include "subscriberclient.h"
 
 #include <string>
 #include <cstring>
@@ -24,6 +25,9 @@ UpdownHandler::UpdownHandler(Common *sharedDataPtr, int port)
     if (sharedDataPtr->prgType == PG_FILE_SRV) {
         if (!QDir("FS_Index").exists()) QDir().mkdir("FS_Index");
     }
+
+    connect(this, SIGNAL(sendFIruData(string, int32_t)),
+            (SubscriberClient*)(sharedDataPtr->ptrSubscriberClient), SLOT(sendFIruData(string, int32_t)));
 }
 
 void UpdownHandler::onConnection(const TcpConnectionPtr &conn)
@@ -177,6 +181,9 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             sendBuffer.append("FCuisucc", 8);
             conn->send(&sendBuffer);
 
+            SubscriberClient* scptr = (SubscriberClient*)sharedData->ptrSubscriberClient;
+            scptr->sendFIruData(hashBuffer, fileIdx);
+
         } else if (buffer.compare("FIru") == 0) {
             // filesrv -> infosrv Report Upload
             // req: [*FIru*][file hash][chunk id] (token?)
@@ -192,6 +199,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             string hashBuffer = buf->retrieveAsString(32);
             int32_t chunkPartID = buf->readInt32();
 
+            LOG_TRACE << "------ " << hashBuffer << "  --  " << chunkPartID;
             FileElement eleme;
             if (eleme.loadState(hashBuffer)) {
                 eleme.chunkArray.push_back(chunkPartID);

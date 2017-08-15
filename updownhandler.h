@@ -10,6 +10,7 @@ using namespace muduo::net;
 
 class UpdownHandler : public QThread
 {
+    Q_OBJECT
 public:
     Common* sharedData;
     explicit UpdownHandler(Common* sharedDataPtr, int port = 8061);
@@ -18,6 +19,8 @@ public:
 private:
     int port = 8061;
     void run();
+signals:
+    void sendFIruData(string hashBuffer, int32_t chunkID);
 };
 
 #endif // UPDOWNHANDLER_H

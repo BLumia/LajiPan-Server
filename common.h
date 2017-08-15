@@ -40,6 +40,10 @@ public:
     FileStorage fileStorage;
     map<int, SrvStat> srvStatus;
     vector<int> enabledSrvArr;
+    // for easily binding signals and solts
+    void* ptrUpdownHandler = nullptr;
+    void* ptrQueryHandler = nullptr;
+    void* ptrSubscriberClient = nullptr;
 
     Common();
 };

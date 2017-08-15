@@ -25,15 +25,16 @@ bool FileElement::loadState(std::string md5)
         QFile checkFile(checkFileInfo.absoluteFilePath());
         checkFile.open(QIODevice::ReadOnly);
         QString buffer;
-        buffer = checkFile.readLine();
+        buffer = checkFile.readLine().trimmed();
         this->id = buffer.toInt();
-        this->ff16b = checkFile.readLine();
+        this->ff16b = checkFile.readLine().trimmed();
         this->totalChunkCount = checkFile.readLine().toInt();
         int chunkCnt = checkFile.readLine().toInt();
         for(int i = 1; i <= chunkCnt; i++) {
             this->chunkArray.push_back(checkFile.readLine().toInt());
         }
         checkFile.close();
+        this->md5 = QString::fromStdString(md5);
         this->inited = true;
     }
 

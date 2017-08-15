@@ -73,13 +73,15 @@ void TestMain::main()
     Logger::setLogLevel(Logger::DEBUG);
 
     UpdownHandler updownSrv(&sharedData, sharedData.updownSrvPort);
-    updownSrv.start();
-
-    // file srv disable query handling?
     QueryHandler querySrv(&sharedData, sharedData.querySrvPort);
-    querySrv.start();
-
     SubscriberClient subSrv(&sharedData, sharedData.subSrvPort);
+
+    sharedData.ptrUpdownHandler = &updownSrv;
+    sharedData.ptrQueryHandler = &querySrv;
+    sharedData.ptrSubscriberClient = &subSrv;
+
+    updownSrv.start();
+    querySrv.start(); // file srv disable query handling?
     if (sharedData.prgType == PG_FILE_SRV) {
         subSrv.start();
     }

@@ -3,6 +3,7 @@
 #include <boost/bind.hpp>
 #include <muduo/net/Socket.h>
 #include <muduo/net/Buffer.h>
+#include <muduo/base/Logging.h>
 #include <QtConcurrent>
 #include <QDebug>
 
@@ -61,6 +62,16 @@ void SubscriberClient::sendKeepAlive()
         //conn->send(&(sharedData->srvID), sizeof(sharedData->srvID));
     }
 
+}
+
+void SubscriberClient::sendFIruData(string hashBuffer, int32_t chunkID)
+{
+    Buffer sendBuffer;
+    sendBuffer.append("FIru");
+    sendBuffer.append(hashBuffer.c_str(), 32);
+    sendBuffer.appendInt32(chunkID);
+    conn->send(&sendBuffer);
+    LOG_INFO << "Sent FIru:" << hashBuffer << " " << chunkID;
 }
 
 void SubscriberClient::run()

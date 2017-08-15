@@ -11,6 +11,7 @@ using namespace muduo::net;
 
 class SubscriberClient : public QThread
 {
+    Q_OBJECT
 public:
     Common* sharedData;
     explicit SubscriberClient(Common* sharedDataPtr, int port = 8008);
@@ -20,6 +21,8 @@ public:
                           muduo::net::Buffer* buf,
                           muduo::Timestamp receiveTime);
     void sendKeepAlive();
+public slots:
+    void sendFIruData(string hashBuffer, int32_t chunkID);
 private:
     TcpClient* subClient; // `sub` names from `pub/sub` model.
     TcpConnectionPtr conn;

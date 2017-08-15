@@ -12,6 +12,7 @@ using namespace muduo::net;
 
 class QueryHandler : public QThread
 {
+    Q_OBJECT
 public:
     Common* sharedData;
     explicit QueryHandler(Common* sharedDataPtr, int port = 8080);
