@@ -52,7 +52,7 @@ bool FileStorage::loadISData()
         while(dataCnt--) {
             readPath = checkFile.readLine().trimmed();
             readHash = checkFile.readLine().trimmed();
-            LOG_INFO << "reached new file data " << readPath.toStdString() << readHash.toStdString();
+            LOG_INFO << "Reached new file " << readPath.toStdString() << " | Hash " << readHash.toStdString();
             pathHashMap.insert(pair<string, string>(readPath.toStdString() , readHash.toStdString()));
         }
         checkFile.close();
@@ -72,12 +72,13 @@ bool FileStorage::loadFSData()
         QString readHash;
         int readID, readPart;
         int dataCnt;
-        dataCnt = checkFile.readLine().toInt();
+        dataCnt = checkFile.readLine().trimmed().toInt();
         while(dataCnt--) {
-            readID = checkFile.readLine().toInt();
-            readHash = checkFile.readLine();
-            readPart = checkFile.readLine().toInt();
+            readID = checkFile.readLine().trimmed().toInt();
+            readHash = checkFile.readLine().trimmed();
+            readPart = checkFile.readLine().trimmed().toInt();
             if (readID >= nextIndex) nextIndex = readID + 1;
+            LOG_INFO << "ID " << readID << " | Hash " << readHash.toStdString() << " | Part " << readPart;
             pathHashMap.insert(pair<string, string>(to_string(readID) , readHash.toStdString()));
             idxPartMap[readID] = readPart;
         }

@@ -79,7 +79,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             // Client -> infosrv Upload Hash Query, should response.
             // req: [*CIhq*][hash(32bytes)][file first 16 bytes(hex, so 32bytes)]
             //      [filesize(int64_t)][256byte filename]
-            // rsp: [ICdc][rsplen]["404" / "403" / "200"] (if 404 then:)
+            // rsp: [ICuc][rsplen]["404" / "403" / "200"] (if 404 then:)
             //      [chunkcnt][addrcnt][addr1..2..]
             if (buf->readableBytes() < (4 + 32 + 32 + 8 + 256)) return; // wait for next read.
             else buf->retrieve(4); // retrieve f4b header marker.
@@ -100,13 +100,13 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             if (eleme.loadState(hashBuffer)) {
                 if (eleme.ff16b.trimmed().compare(QString::fromStdString(ff16bBuffer).trimmed()) == 0) {
                     Buffer sendBuffer;
-                    sendBuffer.append("ICdc", 4);
+                    sendBuffer.append("ICuc", 4);
                     sendBuffer.appendInt32(3);
                     sendBuffer.append("200", 3);
                     conn->send(&sendBuffer);
                 } else {
                     Buffer sendBuffer;
-                    sendBuffer.append("ICdc", 4);
+                    sendBuffer.append("ICuc", 4);
                     sendBuffer.appendInt32(3);
                     sendBuffer.append("403", 3);
                     conn->send(&sendBuffer);
@@ -123,12 +123,13 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 sharedData->fileStorage.saveISData();
                 // rsp
                 int32_t chunkCnt = fileSize / CHUNKSIZE_B;
+                if (fileSize % CHUNKSIZE_B != 0) chunkCnt++;
                 int32_t addrCnt = sharedData->enabledSrvArr.size();
                 int32_t sendSize;
                 sendSize = 3 + 2 * sizeof(int32_t) + addrCnt * 2 * sizeof(uint32_t) + 256;
                 eleme.totalChunkCount = chunkCnt;
                 Buffer sendBuffer;
-                sendBuffer.append("ICdc", 4);
+                sendBuffer.append("ICuc", 4);
                 sendBuffer.appendInt32(sendSize);
                 sendBuffer.append("404", 3);
                 sendBuffer.appendInt32(chunkCnt);
@@ -186,23 +187,24 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
 
         } else if (buffer.compare("FIru") == 0) {
             // filesrv -> infosrv Report Upload
-            // req: [*FIru*][file hash][chunk id] (token?)
+            // req: [*FIru*][file hash][chunk id][FileSrv ID] (and token?)
             // rsp: tan 90°
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
             }
 
-            if (buf->readableBytes() < (4 + 32 + 4)) return; // wait for next read.
+            if (buf->readableBytes() < (4 + 32 + 4 + 4)) return; // wait for next read.
             else buf->retrieve(4); // retrieve f4b header marker.
 
             string hashBuffer = buf->retrieveAsString(32);
             int32_t chunkPartID = buf->readInt32();
+            int32_t fileSrvID = buf->readInt32();
 
-            LOG_TRACE << "------ " << hashBuffer << "  --  " << chunkPartID;
+            LOG_INFO << "------ " << hashBuffer << "  --  " << chunkPartID << " -- " << fileSrvID;
             FileElement eleme;
             if (eleme.loadState(hashBuffer)) {
-                eleme.chunkArray.push_back(chunkPartID);
+                eleme.chunkArray.push_back(chunkPartID + fileSrvID * 1000);
                 eleme.saveState();
             } else {
                 LOG_WARN << "Trying to save or update not exist file state";
@@ -217,6 +219,39 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 conn->shutdown();
             }
             // Query and response for trunk download.
+            conn->shutdown(); // TODO: remove this api or impl it.
+
+        } else if (buffer.compare("CIfq") == 0) {
+            // Client -> Infosrv File Query
+            // req: [*CIfq*][256byte filename]
+            // rsp: [ICdc][chunkCnt][chunk1..2..3..]
+            if (sharedData->prgType != PG_INFO_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+            }
+            if (buf->readableBytes() < 4 + 256) return; // should also have chunk len.
+            buf->retrieve(4);
+            string fileName = buf->retrieveAsString(256);
+            string cleanedFileName(fileName.c_str());
+            map<string, string>* phmPtr = &(sharedData->fileStorage.pathHashMap);
+            vector<int> resultArr;
+            if (phmPtr->find(cleanedFileName) != phmPtr->end()) {
+                string fileHash = (*phmPtr->find(cleanedFileName)).second;
+                FileElement eleme;
+                eleme.loadState(fileHash);
+                if (eleme.chunkArray.size() == eleme.totalChunkCount) {
+                    resultArr = eleme.chunkArray;
+                }
+            }
+            // ensure data are inside `resultArr`.
+            Buffer sendBuffer;
+            int32_t size = resultArr.size();
+            sendBuffer.append("ICdc", 4);
+            sendBuffer.appendInt32(size);
+            for (int32_t chunkid : resultArr) {
+                sendBuffer.appendInt32(chunkid);
+            }
+            conn->send(&sendBuffer);
 
         } else if (buffer.compare("PING") == 0) {
             // just for test, rsp: "PONG"
@@ -231,7 +266,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
         // conn->shutdown();
     }
     // dont do this in final version!!!!!!
-    buf->retrieveAll(); // clean up unreaded. this may cause problem if data not yet fully received.
+    // buf->retrieveAll(); clean up unreaded. this may cause problem if data not yet fully received.
 }
 
 void UpdownHandler::run()

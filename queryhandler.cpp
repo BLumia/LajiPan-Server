@@ -68,8 +68,8 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
 
         resp->setBody(rawData);
     }
-    else if (req.path().at(0) == '/' && req.path().at(1) == 'f')
-    {
+    else if (req.path().at(0) == '/' && req.path().at(1) == 'f' && req.path().at(2) == 'i')
+    {   // favicon ?????? nya nya nya ??????
         resp->setStatusCode(HttpResponse::k200Ok);
         resp->setStatusMessage("OK");
         resp->setContentType("application/json");
@@ -83,7 +83,14 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
                 root["filelist"].append(kv.first);
             }
         } else if (sharedData->prgType == PG_FILE_SRV) {
-            // TODO: display chunk state
+            root["chunklist"] = Json::arrayValue;
+            Json::Value elem;
+            for (auto& kv : sharedData->fileStorage.pathHashMap) {
+                elem["id"] = kv.first;
+                elem["ori_hash"] = kv.second;
+                elem["part_id"] = sharedData->fileStorage.idxPartMap[stoi(kv.first)];
+                root["chunklist"].append(elem);
+            }
         } else {
             root["mamacat"] = "mia!";
         }
@@ -107,7 +114,7 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
         resp->setContentType("application/octet-stream");
         resp->addHeader("Server", "LajiPan IS");
 
-        // TODO: content len?
+        // content len
         // blob
         int chunkID;
         char urlCopy[128];
@@ -131,7 +138,7 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
     }
     else
     {
-        resp->setStatusCode(HttpResponse::k400BadRequest);
+        resp->setStatusCode(HttpResponse::k404NotFound);
         resp->setStatusMessage("Not Found");
         resp->setCloseConnection(true);
     }

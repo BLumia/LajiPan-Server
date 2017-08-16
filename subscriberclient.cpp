@@ -66,10 +66,15 @@ void SubscriberClient::sendKeepAlive()
 
 void SubscriberClient::sendFIruData(string hashBuffer, int32_t chunkID)
 {
+    if (sharedData->prgType != PG_FILE_SRV) {
+        LOG_FATAL << "sendFIruData(): NOT A FILE SRV!!!!!!!!!!!!";
+        return;
+    }
     Buffer sendBuffer;
     sendBuffer.append("FIru");
     sendBuffer.append(hashBuffer.c_str(), 32);
     sendBuffer.appendInt32(chunkID);
+    sendBuffer.appendInt32(sharedData->srvID);
     conn->send(&sendBuffer);
     LOG_INFO << "Sent FIru:" << hashBuffer << " " << chunkID;
 }
