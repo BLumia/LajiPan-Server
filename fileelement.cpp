@@ -28,10 +28,10 @@ bool FileElement::loadState(std::string md5)
         buffer = checkFile.readLine().trimmed();
         this->id = buffer.toInt();
         this->ff16b = checkFile.readLine().trimmed();
-        this->totalChunkCount = checkFile.readLine().toInt();
-        int chunkCnt = checkFile.readLine().toInt();
+        this->totalChunkCount = checkFile.readLine().trimmed().toInt();
+        int chunkCnt = checkFile.readLine().trimmed().toInt();
         for(int i = 1; i <= chunkCnt; i++) {
-            this->chunkArray.push_back(checkFile.readLine().toInt());
+            this->chunkArray.push_back(checkFile.readLine().trimmed().toInt());
         }
         checkFile.close();
         this->md5 = QString::fromStdString(md5);

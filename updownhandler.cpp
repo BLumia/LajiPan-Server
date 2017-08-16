@@ -206,6 +206,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             if (eleme.loadState(hashBuffer)) {
                 eleme.chunkArray.push_back(chunkPartID + fileSrvID * 1000);
                 eleme.saveState();
+                sharedData->fileStorage.pushFileRecord(hashBuffer, chunkPartID);
             } else {
                 LOG_WARN << "Trying to save or update not exist file state";
             }
@@ -237,6 +238,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             vector<int> resultArr;
             if (phmPtr->find(cleanedFileName) != phmPtr->end()) {
                 string fileHash = (*phmPtr->find(cleanedFileName)).second;
+                LOG_INFO << "Found hash: " + fileHash;
                 FileElement eleme;
                 eleme.loadState(fileHash);
                 if (eleme.chunkArray.size() == eleme.totalChunkCount) {
