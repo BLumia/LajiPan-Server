@@ -70,7 +70,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 yetAnotherSrvStat.serverAddr = conn->peerAddress();
                 sharedData->srvStatus.insert(map<int, SrvStat>::value_type(fileSrvID, yetAnotherSrvStat));
             } else {
-                LOG_DEBUG << "Received keepalive from " << fileSrvID << " at " << receiveTime.toString();
+                LOG_TRACE << "Received keepalive from " << fileSrvID << " at " << receiveTime.toString();
                 SrvStat weGotaSrvStat = sharedData->srvStatus[fileSrvID];
                 weGotaSrvStat.lastKeepAlive = receiveTime;
                 sharedData->srvStatus[fileSrvID] = weGotaSrvStat;
@@ -201,7 +201,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             int32_t chunkPartID = buf->readInt32();
             int32_t fileSrvID = buf->readInt32();
 
-            LOG_INFO << "------ " << hashBuffer << "  --  " << chunkPartID << " -- " << fileSrvID;
+            LOG_INFO << "------hash: " << hashBuffer << "  --part:  " << chunkPartID << " --FSID: " << fileSrvID;
             FileElement eleme;
             if (eleme.loadState(hashBuffer)) {
                 eleme.chunkArray.push_back(chunkPartID + fileSrvID * 1000);
@@ -263,7 +263,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
         } else {
             LOG_INFO << "Weird Query: " << buffer;
         }
-        LOG_INFO << buffer;
+        LOG_TRACE << buffer << " proccessed.";
         // conn->send(":cry_on_big_news:\r\n");
         // conn->shutdown();
     }

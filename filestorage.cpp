@@ -22,6 +22,7 @@ bool FileStorage::pushPathHash(string path_k, string hash_v)
     //path_k.erase(path_k.find_last_not_of(" \n\v\f\r\t")+1);
     hash_v.erase(hash_v.find_last_not_of(" \n\v\f\r\t")+1);
     pathHashMap.insert(pair<string, string>(cleanedPath , hash_v));
+    LOG_DEBUG << "---- pushPathHash( " << cleanedPath << " , " << hash_v;
     return true;
 }
 

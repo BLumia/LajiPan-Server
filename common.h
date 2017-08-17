@@ -11,7 +11,7 @@
 #include <muduo/base/Timestamp.h>
 
 #define CHUNKSIZE_MB    64
-#define CHUNKSIZE_B     67108861
+#define CHUNKSIZE_B     67108864
 
 using namespace std;
 using namespace muduo;
