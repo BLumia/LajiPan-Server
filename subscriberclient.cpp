@@ -55,6 +55,7 @@ void SubscriberClient::sendKeepAlive()
         Buffer sendBuffer;
         sendBuffer.append("FIka");
         sendBuffer.appendInt32(sharedData->srvID);
+        sendBuffer.appendInt32(sharedData->updownSrvPort);
         //conn->send("FIka");
         //int32_t asd = sockets::hostToNetwork32(sharedData->srvID);
         conn->send(&sendBuffer);

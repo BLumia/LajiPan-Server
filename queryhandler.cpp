@@ -124,7 +124,9 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
         QFile willUpload(fileFullPath);
         QFileInfo fileinfo(fileFullPath);
         qint64 fileLen = fileinfo.size();
-
+        int chunkPartNum = sharedData->fileStorage.idxPartMap[chunkID];
+        resp->addHeader("Content-Disposition", "inline; filename=\""+
+                        QString::number(chunkPartNum).toStdString()+".dl\"");
         resp->addHeader("content-length", QString::number(fileLen).toStdString());
 
         if (!willUpload.open(QIODevice::ReadOnly)) {

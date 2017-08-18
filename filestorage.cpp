@@ -22,17 +22,22 @@ bool FileStorage::pushPathHash(string path_k, string hash_v)
     //path_k.erase(path_k.find_last_not_of(" \n\v\f\r\t")+1);
     hash_v.erase(hash_v.find_last_not_of(" \n\v\f\r\t")+1);
     pathHashMap.insert(pair<string, string>(cleanedPath , hash_v));
-    LOG_DEBUG << "---- pushPathHash( " << cleanedPath << " , " << hash_v;
+    LOG_DEBUG << "---- pushPathHash( " << cleanedPath << " , " << hash_v << " )";
     return true;
 }
 
 int FileStorage::pushFileRecord(string origFileHash, int filePartID)
 {
+    // This function should only be called in FileSrv.
+    // We don't have a sharedData ptr here so we don't check that
+
     lock_guard<mutex> guardian(insertDataMutex); // protect for index.
 
     pathHashMap.insert(pair<string, string>(std::to_string(this->nextIndex) , origFileHash));
     idxPartMap.insert(pair<int, int>(this->nextIndex, filePartID) );
-    this->nextIndex++;
+
+    LOG_DEBUG << "---- pushFileRecord( " << origFileHash << " , " << filePartID << " )";
+    this->nextIndex++;    
     return (this->nextIndex - 1);
 }
 

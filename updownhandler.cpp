@@ -53,8 +53,8 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
         if (buffer.compare("FIka") == 0) {
             // filesrv -> infosrv keep-alive
             // read / update filesrv uptime info.
-            // req: [*FIka*][FileSrvID]
-            if (buf->readableBytes() < (4 + 4)) return; // wait for next read.
+            // req: [*FIka*][FileSrvID][FileSrvUpdownPort]
+            if (buf->readableBytes() < (4 + 4 + 4)) return; // wait for next read.
             else buf->retrieve(4); // retrieve f4b header marker.
 
             if (sharedData->prgType != PG_INFO_SRV) {
@@ -62,12 +62,13 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 conn->shutdown();
             }
             int fileSrvID = buf->readInt32();
+            int fileSrvPort = buf->readInt32();
             if (sharedData->srvStatus.count(fileSrvID) == 0) {
                 LOG_DEBUG << "Received NEW keepalive from " << fileSrvID << " at " << receiveTime.toString();
                 SrvStat yetAnotherSrvStat;
                 yetAnotherSrvStat.lastKeepAlive = receiveTime;
                 yetAnotherSrvStat.serverID = fileSrvID;
-                yetAnotherSrvStat.serverAddr = conn->peerAddress();
+                yetAnotherSrvStat.serverAddr = InetAddress(conn->peerAddress().toIp(), fileSrvPort);
                 sharedData->srvStatus.insert(map<int, SrvStat>::value_type(fileSrvID, yetAnotherSrvStat));
             } else {
                 LOG_TRACE << "Received keepalive from " << fileSrvID << " at " << receiveTime.toString();
@@ -206,7 +207,6 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             if (eleme.loadState(hashBuffer)) {
                 eleme.chunkArray.push_back(chunkPartID + fileSrvID * 1000);
                 eleme.saveState();
-                sharedData->fileStorage.pushFileRecord(hashBuffer, chunkPartID);
             } else {
                 LOG_WARN << "Trying to save or update not exist file state";
             }
