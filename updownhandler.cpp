@@ -130,8 +130,8 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 sendSize = 3 + 2 * sizeof(int32_t) + addrCnt * 2 * sizeof(uint32_t) + 256;
                 eleme.totalChunkCount = chunkCnt;
                 Buffer sendBuffer;
-                sendBuffer.append("ICuc", 4);
-                sendBuffer.appendInt32(sendSize);
+                sendBuffer.append("ICuc", 4); // send size not included this.
+                sendBuffer.appendInt32(sendSize); // send size not included this.
                 sendBuffer.append("404", 3);
                 sendBuffer.appendInt32(chunkCnt);
                 sendBuffer.appendInt32(addrCnt);
@@ -145,6 +145,39 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 }
                 conn->send(&sendBuffer);
             }
+
+        } else if (buffer.compare("CIsr") == 0) {
+            // Client -> infosrv Servers Stats Request, should response.
+            // req: [*CIsr*]
+            // rsp: [ICsr][rsplen][addrcnt][addr1..2..]
+            buf->retrieve(4); // retrieve f4b header marker.
+
+            if (sharedData->prgType != PG_INFO_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+            }
+
+            Buffer sendBuffer;
+
+            int32_t addrCnt = sharedData->enabledSrvArr.size();
+            int32_t sendSize;
+            sendSize = sizeof(int32_t) + addrCnt * 3 * sizeof(uint32_t);
+
+            sendBuffer.append("ICsr", 4); // send size not included this.
+            sendBuffer.appendInt32(sendSize); // send size not included this.
+            sendBuffer.appendInt32(addrCnt);
+
+            for(int i = 0; i< addrCnt; i++) {
+                int srvIdx = sharedData->enabledSrvArr[i];
+                uint32_t addr = sharedData->srvStatus[srvIdx].serverAddr.ipNetEndian();
+                int32_t port = sharedData->srvStatus[srvIdx].serverAddr.toPort();
+                //sendBuffer.append((char*)&addr, sizeof(addr));
+                sendBuffer.appendInt32(srvIdx);
+                sendBuffer.appendInt32(addr);
+                sendBuffer.appendInt32(port);
+            }
+
+            conn->send(&sendBuffer);
 
         } else if (buffer.compare("CFuc") == 0) {
             // Client -> filesrv Upload Chunk, should response.
