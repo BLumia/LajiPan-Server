@@ -174,6 +174,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                 //sendBuffer.append((char*)&addr, sizeof(addr));
                 sendBuffer.appendInt32(srvIdx);
                 sendBuffer.appendInt32(addr);
+                // FIXME: maybe should provide a Query(HTTP) Port?
                 sendBuffer.appendInt32(port);
             }
 
