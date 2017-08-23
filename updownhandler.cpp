@@ -105,7 +105,17 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
                     sendBuffer.appendInt32(3);
                     sendBuffer.append("200", 3);
                     conn->send(&sendBuffer);
+
+                    // we already got this file so just add the file record to .storage indexing file.
+                    // dont upload at all.
+                    QString cleanedFileName = QString::fromStdString(fileName);
+                    cleanedFileName = cleanedFileName.simplified();
+                    // save file to fileStorage indexing db
+                    sharedData->fileStorage.pushPathHash(cleanedFileName.toStdString(), hashBuffer);
+                    sharedData->fileStorage.saveISData();
                 } else {
+                    // server had this file, but user didnt. user pretend to upload
+                    // inorder to dl. dont allowed this.
                     Buffer sendBuffer;
                     sendBuffer.append("ICuc", 4);
                     sendBuffer.appendInt32(3);
