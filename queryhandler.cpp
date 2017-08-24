@@ -121,7 +121,7 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
         strcpy(urlCopy, req.path().c_str());
         sscanf(urlCopy + 10, "%d", &chunkID);
         QString fileFullPath = "FS_Index/" + QString::number(chunkID);
-        QFile willUpload(fileFullPath);
+        QFile willDownload(fileFullPath);
         QFileInfo fileinfo(fileFullPath);
         qint64 fileLen = fileinfo.size();
         int chunkPartNum = sharedData->fileStorage.idxPartMap[chunkID];
@@ -129,12 +129,12 @@ void QueryHandler::onRequest(Common* sharedData, const HttpRequest& req, HttpRes
                         QString::number(chunkPartNum).toStdString()+".dl\"");
         resp->addHeader("content-length", QString::number(fileLen).toStdString());
 
-        if (!willUpload.open(QIODevice::ReadOnly)) {
+        if (!willDownload.open(QIODevice::ReadOnly)) {
             LOG_ERROR << "CAN NOT READ FILE";
             return;
         }
         QByteArray blob(fileLen, 0);
-        blob = willUpload.readAll();
+        blob = willDownload.readAll();
 
         resp->setBody(blob.toStdString());
     }

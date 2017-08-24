@@ -258,13 +258,37 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
         } else if (buffer.compare("CFdc") == 0) {
             // Client -> filesrv Download Chunk, should response.
             // req: [*CFdc*][chunk id][token for safty?]
-            // rsp: [FCdc][chunkid][chunklen(ssize_t?)][chunk]
+            // rsp: [FCdc][chunkpartid][chunklen(int64_t)][chunk]
             if (sharedData->prgType != PG_FILE_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
+                return;
             }
+            if (buf->readableBytes() < (4 + 4 + 0)) return; // wait for next read.
+            else buf->retrieve(4); // retrieve f4b header marker.
+            int32_t chunkID = buf->readInt32();
             // Query and response for trunk download.
-            conn->shutdown(); // TODO: remove this api or impl it.
+            QString fileFullPath = "FS_Index/" + QString::number(chunkID);
+            QFile willDownload(fileFullPath);
+            QFileInfo fileinfo(fileFullPath);
+            qint64 fileLen = fileinfo.size();
+            int chunkPartNum = sharedData->fileStorage.idxPartMap[chunkID];
+
+            if (!willDownload.open(QIODevice::ReadOnly)) {
+                LOG_ERROR << "CFdc: CAN NOT READ FILE";
+                conn->shutdown();
+                return;
+            }
+            QByteArray blob(fileLen, 0);
+            blob = willDownload.readAll();
+
+            Buffer sendBuffer;
+            sendBuffer.append("FCdc", 4);
+            sendBuffer.appendInt32(chunkPartNum);
+            sendBuffer.appendInt64(fileLen);
+            sendBuffer.append(blob.data(), fileLen);
+
+            conn->send(&sendBuffer);
 
         } else if (buffer.compare("CIfq") == 0) {
             // Client -> Infosrv File Query
@@ -273,6 +297,7 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             if (sharedData->prgType != PG_INFO_SRV) {
                 conn->send("FUCK");
                 conn->shutdown();
+                return;
             }
             if (buf->readableBytes() < 4 + 256) return; // should also have chunk len.
             buf->retrieve(4);
