@@ -46,6 +46,7 @@ public:
     void* ptrSubscriberClient = nullptr;
 
     Common();
+    static int getFSIDbyAddr(const map<int, SrvStat> &srvStatus, InetAddress addr);
 };
 
 #endif // COMMON_H

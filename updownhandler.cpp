@@ -6,6 +6,7 @@
 #include <cstring>
 #include <boost/bind.hpp>
 #include <QDir>
+#include <arpa/inet.h>
 
 #include <muduo/net/EventLoop.h>
 #include <muduo/net/TcpServer.h>
@@ -25,6 +26,7 @@ UpdownHandler::UpdownHandler(Common *sharedDataPtr, int port)
     if (sharedDataPtr->prgType == PG_FILE_SRV) {
         if (!QDir("FS_Index").exists()) QDir().mkdir("FS_Index");
     }
+    if (!QDir("Backup").exists()) QDir().mkdir("Backup");
 
     connect(this, SIGNAL(sendFIruData(string, int32_t)),
             (SubscriberClient*)(sharedDataPtr->ptrSubscriberClient), SLOT(sendFIruData(string, int32_t)));
@@ -190,6 +192,40 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
 
             conn->send(&sendBuffer);
 
+        } else if (buffer.compare("CIbr") == 0) {
+            // Client -> infosrv Backup Request, should response.
+            // req: [*CIbr*][uint32 addr][int32 port][int32 chunkid]
+            // rsp: [ICbi][uint32 addr][int32 port][int32 FSID*1000+chunkid]
+            if (buf->readableBytes() < (4 + 4 + 4 + 4)) return; // wait for next read.
+            else buf->retrieve(4); // retrieve f4b header marker.
+
+            if (sharedData->prgType != PG_INFO_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+            }
+
+            uint32_t fsaddr = buf->readInt32();
+            int32_t fsport = buf->readInt32();
+            int32_t chunkid = buf->readInt32();
+            char str[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(fsaddr), str, INET_ADDRSTRLEN);
+            string a(str);
+            InetAddress fsia(a, fsport);
+            int fsid = Common::getFSIDbyAddr(sharedData->srvStatus, fsia);
+            int retfsidnidx = fsid * 1000 + chunkid;
+
+            // mark srv down?
+            LOG_DEBUG << "Backup Req: " << retfsidnidx << " aka " << a << ":" << fsport;
+
+            Buffer sendBuffer;
+
+            sendBuffer.append("ICbi", 4);
+            sendBuffer.appendInt32(0);
+            sendBuffer.appendInt32(0);
+            sendBuffer.appendInt32(-1);
+
+            conn->send(&sendBuffer);
+
         } else if (buffer.compare("CFuc") == 0) {
             // Client -> filesrv Upload Chunk, should response.
             // req: [*CFuc*][chunk len(int64)][file hash][file part id(for client)][chunk] (token?)
@@ -254,6 +290,41 @@ void UpdownHandler::onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timesta
             } else {
                 LOG_WARN << "Trying to save or update not exist file state";
             }
+
+        } else if (buffer.compare("CFdb") == 0) {
+            // Client -> filesrv Download Backup chunk, should response.
+            // req: [*CFdb*][chunk id][token for safty?]
+            // rsp: [FCdb][chunkpartid][chunklen(int64_t)][chunk]
+            if (sharedData->prgType != PG_FILE_SRV) {
+                conn->send("FUCK");
+                conn->shutdown();
+                return;
+            }
+            if (buf->readableBytes() < (4 + 4 + 0)) return; // wait for next read.
+            else buf->retrieve(4);
+            int32_t chunkID = buf->readInt32();
+            // Query and response for trunk download.
+            QString fileFullPath = "Backup/" + QString::number(chunkID);
+            QFile willDownload(fileFullPath);
+            QFileInfo fileinfo(fileFullPath);
+            qint64 fileLen = fileinfo.size();
+            int chunkPartNum = 1; // FIXME: always 1
+
+            if (!willDownload.open(QIODevice::ReadOnly)) {
+                LOG_ERROR << "CFdb: CAN NOT READ FILE";
+                conn->shutdown();
+                return;
+            }
+            QByteArray blob(fileLen, 0);
+            blob = willDownload.readAll();
+
+            Buffer sendBuffer;
+            sendBuffer.append("FCdb", 4);
+            sendBuffer.appendInt32(chunkPartNum);
+            sendBuffer.appendInt64(fileLen);
+            sendBuffer.append(blob.data(), fileLen);
+
+            conn->send(&sendBuffer);
 
         } else if (buffer.compare("CFdc") == 0) {
             // Client -> filesrv Download Chunk, should response.
