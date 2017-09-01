@@ -1,0 +1,298 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Slideshow | BLumia@GitHub</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <!--
+        
+        Impress.js doesn't depend on any external stylesheets. It adds all of the styles it needs for the
+        presentation to work.
+        
+        This style below contains styles only for demo presentation. Browse it to see how impress.js
+        classes are used to style presentation steps, or how to apply fallback styles, but I don't want
+        you to use them directly in your presentation.
+        
+        Be creative, build your own. We don't really want all impress.js presentations to look the same,
+        do we?
+        
+        When creating your own presentation get rid of this file. Start from scratch, it's fun!
+        
+    -->
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+</head>
+
+<!--
+    
+    Body element is used by impress.js to set some useful class names, that will allow you to detect
+    the support and state of the presentation in CSS or other scripts.
+    
+    First very useful class name is `impress-not-supported`. This class means, that browser doesn't
+    support features required by impress.js, so you should apply some fallback styles in your CSS.
+    It's not necessary to add it manually on this element. If the script detects that browser is not
+    good enough it will add this class, but keeping it in HTML means that users without JavaScript
+    will also get fallback styles.
+    
+    When impress.js script detects that browser supports all required features, this class name will
+    be removed.
+    
+    The class name on body element also depends on currently active presentation step. More details about
+    it can be found later, when `hint` element is being described.
+    
+-->
+<body class="impress-not-supported">
+
+<!--
+    For example this fallback message is only visible when there is `impress-not-supported` class on body.
+-->
+<div class="fallback-message">
+    <p>Huh?</p>
+</div>
+
+<!--
+    
+    Now that's the core element used by impress.js.
+    
+    That's the wrapper for your presentation steps. In this element all the impress.js magic happens.
+    It doesn't have to be a `<div>`. Only `id` is important here as that's how the script find it.
+    
+    You probably won't need it now, but there are some configuration options that can be set on this element.
+    
+    To change the duration of the transition between slides use `data-transition-duration="2000"` giving it
+    a number of ms. It defaults to 1000 (1s).
+    
+    You can also control the perspective with `data-perspective="500"` giving it a number of pixels.
+    It defaults to 1000. You can set it to 0 if you don't want any 3D effects.
+    If you are willing to change this value make sure you understand how CSS perspective works:
+    https://developer.mozilla.org/en/CSS/perspective
+    
+    But as I said, you won't need it for now, so don't worry - there are some simple but interesting things
+    right around the corner of this tag ;)
+    
+-->
+<div id="impress">
+
+    <div id="bored" class="step slide" data-x="-2200" data-y="-1500">
+        <q><center>Idling...</center></q>
+    </div>
+    <div class="step slide" data-x="-1100" data-y="-1500">
+        <q><center>分布式网盘系统验收演示<br/>及近期学习内容汇报</center></q><br/>
+        <q><center>BLumia@GitHub</center></q>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <q>我知道应该写分布式网盘，<br/>但我到底<strong>应该写什么</strong>？</q>
+        <ul style="padding-top: 2em;">
+            <li>对于该实习项目，我们不是要做：</li>
+            <li> - 可以使用在生产环境的产品（考虑该问题的根本原因）</li>
+            <li>&nbsp;</li>
+            <li>所以，基本功能同等的情况下：</li>
+            <li> + 可扩展性 &gt; 完整的实现</li>
+            <li> + 更多的解决方案 &gt; 更多的重复代码</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="1100" data-y="-1500">
+        <q><center>选择方案？</center></q>
+        <ul style="padding-top: 2em;">
+            <li><strong>WebDAV</strong> (<s>Distributed</s> Authoring and Versioning) - 分布式对用户可见</li>
+            <li><strong>RAW-text protocol</strong> - Pros 'n' Cons</li>
+            <li><strong>Protobuf vs JSON</strong> - JSON 大获全胜</li>
+            <li><strong>WebAPI</strong> - Why not?</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="2200" data-y="-1500">
+            <q><center>最终决定：</center></q>
+            <ul style="padding-top: 2em;">
+                <li><strong>服务器: Muduo</strong> - 硬点的</li>
+                <li><strong>客户端: Qt 全家桶</strong> - 更方便移植到各个平台</li>
+                <li><strong>TCP Protocol API</strong><sup>*</sup> - 保留原有功能</li>
+                <li><strong>WebAPI</strong> - 无限可扩展性和无限可能性</li>
+                <li>&nbsp;</li>
+            </ul>
+            <span class="footnote"><sup>*</sup> 没选 JSON 的确是个错误</span>
+        </div>
+
+    <!--
+        
+        This is an example of step element being scaled.
+        
+        Again, we use a `data-` attribute, this time it's `data-scale="4"`, so it means that this
+        element will be 4 times larger than the others.
+        From presentation and transitions point of view it means, that it will have to be scaled
+        down (4 times) to make it back to its correct size.
+        
+    -->
+    <div id="title" class="step" data-x="0" data-y="0" data-scale="4">
+        <span class="try">Introducing</span>
+        <h1>Laji Pan<sup>*</sup></h1>
+        <span class="footnote"><sup>*</sup> /r/softwaregore</span>
+    </div>
+
+    <div class="step" data-x="-1500" data-y="2000" data-rotate="0" data-scale="1">
+        <span>模型：</span>
+        <p>GFS... 白板时间</p>
+    </div>
+
+    <div id="its" class="step " data-x="0" data-y="2000" data-rotate="0" data-scale="1">
+        <p>考虑到的点：</p>
+        <p>数据持久化<br/>FF16B: 散列值 <strong>不能</strong> 作为唯一凭据<br/>
+        WebAPI: 不应该重新发明轮子 <br/>
+        可拓展性: 多用户支持 / 安全 / 容灾 / StatsD <br/></p>
+    </div>
+
+    <div class="step" data-x="1100" data-y="2000" data-rotate="0" data-scale="1">
+        <p>学到了什么：</p>
+        <p>本应为可扩展性留有足够的空间<br/>
+        模块化开发的便利之处<br/>
+        好的实施方案能够显著提高开发效率<br/></p>
+    </div>
+
+    <div class="step" data-x="2200" data-y="2000" data-rotate="0" data-scale="1">
+        <p>学到了什么：</p>
+        <p>了解 TCP / IP 协议簇并能够编写相关程序<br/>
+        了解 Linux 开发的步骤和知识<br/>
+        了解了更多实用的工具和技术<br/></p>
+    </div>
+
+    <div id="overview" class="step" data-x="500" data-y="200" data-scale="6">
+    </div>
+
+</div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Presentation start when Half-Life 3 get released</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Tap on the left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it wont initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real?
+    
+    I'm impressed! Feel free to let me know that you got that far (I'm @bartaz on Twitter), 'cause I'd like
+    to congratulate you personally :)
+    
+    But you don't have to do it now. Take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink. And raise a glass for me ;)
+    
+    Cheers!
+    
+-->
+
